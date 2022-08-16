@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 #include "fatfs.h"
-#include "recorder/dmaio.h"
 #include "recorder/wav.h"
 
-#define RECORDER_BUFFER_SIZE 32768 // in samples (per channel)
+#define RECORDER_MAX_BUFFERS 512
+#define RECORDER_BUFFER_SIZE 65536 // in samples (per channel)
 #define RECORDER_INSTANCES_COUNT 1
 
 #define RECORDER_STATE_IDLE 0
@@ -16,39 +16,59 @@
 #define RECORDER_TICK_STATUS_OK 0
 #define RECORDER_TICK_STATUS_IO_ERR -1
 
-// Processed in a loop while the recorder is active. Should return RECORDER_TICK_STATUS_*
-typedef int (*recorder_class_tick_cb)(FIL* file, rec_dmaio_t* io, uint64_t* samplesWritten);
+typedef struct {
 
-// Processed once after initialization
-typedef void (*recorder_class_init_cb)();
+	void* buffer;
+	uint8_t state; // All 8 bits must be set for this to be considered full
+
+} recorder_setup_buffer_t;
+
+typedef struct {
+
+	recorder_setup_buffer_t buffers[RECORDER_MAX_BUFFERS];
+	int buffer_count;
+
+	uint64_t dropped_samples;
+
+} recorder_setup_t;
+
+// Called to setup
+typedef void (*recorder_class_init_cb)(recorder_setup_t* setup);
+
+// Called to begin recieving
+typedef void (*recorder_class_start_cb)();
+
+// Called to stop recieving
+typedef void (*recorder_class_stop_cb)();
 
 // Declares all of the options for a recorder
 typedef struct {
 
 	const char* name;
-	DMA_HandleTypeDef* dma_handle_a; // Required
-	DMA_HandleTypeDef* dma_handle_b; // Required only if input_requires_slave is set
 
-	uint32_t input_bytes_per_sample; // Bytes per sample for the DMA input
-	uint8_t input_requires_slave;    // Set to 1 if both the A and B DMA queue buffers are used
+	uint32_t input_bytes_per_sample; //across all channels
 
 	uint16_t output_channels;
 	uint16_t output_bits_per_sample;
 	uint32_t output_sample_rate;
 
-	recorder_class_tick_cb tick_cb;
 	recorder_class_init_cb init_cb;
+	recorder_class_start_cb start_cb;
+	recorder_class_stop_cb stop_cb;
 
 } recorder_class_t;
 
-// Initializes a recorder_class_t object for IQ
-void recorder_class_init_iq(recorder_class_t* cls);
+/* CLASSES */
+
+extern const recorder_class_t recorder_class_iq;
+
+/* MAIN */
 
 // Initializes the recorder.
 void recorder_init();
 
 // Query info about an instance by index
-void recorder_query_instance_info(int index, recorder_class_t* info, uint8_t* state, uint64_t* received_samples, uint64_t* dropped_buffers);
+void recorder_query_instance_info(int index, recorder_class_t* info, uint8_t* state, uint64_t* received_samples, uint64_t* dropped_samples);
 
 // Requests that a recorder at index begins recording. Interrupt safe.
 void recorder_request_start(int index);

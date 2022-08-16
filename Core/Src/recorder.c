@@ -2,11 +2,6 @@
 #include "sdram.h"
 #include <string.h>
 
-#define RECORDER_INSTANCES_COUNT 1
-
-#define RECORDER_STATE_IDLE 0
-#define RECORDER_STATE_RECORDING 1
-
 typedef struct {
 
 	recorder_class_t info;
@@ -51,7 +46,6 @@ static void setup_recorder_buffers() {
 
 		//Set
 		recorders[i].io.buffer_count = bufferCount;
-		recorders[i].io.buffer_size = RECORDER_BUFFER_SIZE;
 
 		//Setup each buffer
 		for (int b = 0; b < bufferCount; b++) {
@@ -87,11 +81,31 @@ void recorder_init() {
 		recorders[i].state = RECORDER_STATE_IDLE;
 		recorders[i].received_samples = 0;
 
+		//Get transfer width of the DMA. If applicable, make sure both match
+		int msize = (recorders[i].info.dma_handle_a->Instance->CR >> 13) & 0b11; //pg 329 of reference manual
+		if (recorders[i].info.dma_handle_b != 0)
+			assert(msize == ((recorders[i].info.dma_handle_b->Instance->CR >> 13) & 0b11));
+
+		//Calculate bytes/transfer
+		int transferBytes = 0;
+		switch (msize) {
+		case 0b00: transferBytes = 1; break;
+		case 0b01: transferBytes = 2; break;
+		case 0b10: transferBytes = 4; break;
+		}
+
+		//Calculate the number of DMA transfers needed to consume the same amount of bytes as we're buffering
+		int bufferedBytes = recorders[i].info.input_bytes_per_sample * RECORDER_BUFFER_SIZE;
+		assert((bufferedBytes % transferBytes) == 0);
+		int transferSize = bufferedBytes / transferBytes;
+		assert(transferSize < 65536); // 65535 is the maximum number of tranfers a DMA can do
+
 		//Setup IO and begin capturing to buffers
 		recorders[i].io.dma_handle_a = recorders[i].info.dma_handle_a;
 		recorders[i].io.dma_handle_b = recorders[i].info.dma_handle_b;
 		recorders[i].io.dropped_buffers = 0;
 		recorders[i].io.received_buffers = 0;
+		recorders[i].io.buffer_size = transferSize;
 		rec_dmaio_init(&recorders[i].io);
 
 		//Initialize hardware
@@ -126,13 +140,13 @@ static void recorder_start(int i) {
 // Immediately stops a recorder. Should be done in worker.
 static void recorder_stop(int index, int code) {
 	//Set state
-	recorders[index].state = RECORDER_STATE_IDLE;
-
-	//Close file
-	f_close(&recorders[index].file);
+	recorders[index].state = RECORDER_STATE_STOPPING;
 
 	//Send user notification
-	recorder_handler_stop(index, code);
+	recorder_handler_stop(index, &recorders[index].file, code);
+
+	//Set state
+	recorders[index].state = RECORDER_STATE_IDLE;
 }
 
 // Should be called in processing loop. Handles events.
@@ -168,6 +182,14 @@ void recorder_tick() {
 	}
 }
 
+// Query info about an instance by index
+void recorder_query_instance_info(int index, recorder_class_t* info, uint8_t* state, uint64_t* received_samples, uint64_t* dropped_buffers) {
+	(*info) = recorders[index].info;
+	(*state) = recorders[index].state;
+	(*received_samples) = recorders[index].received_samples;
+	(*dropped_buffers) = recorders[index].io.dropped_buffers;
+}
+
 /* USER STUBS */
 
 // USER IMPLIMENTED - Called when a recorder starts. Output should be opened. Returns 1 on success, otherwise 0
@@ -178,7 +200,8 @@ __weak int recorder_handler_begin(int index, FIL* output) {
 }
 
 // USER IMPLIMENTED - Called when a recorder stops (either normally or with an error)
-__weak void recorder_handler_stop(int index, int code) {
+__weak void recorder_handler_stop(int index, FIL* output, int code) {
 	UNUSED(index);
+	UNUSED(output);
 	UNUSED(code);
 }

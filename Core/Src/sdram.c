@@ -90,7 +90,7 @@ int run_ram_check(__IO uint32_t* start, uint32_t len, uint32_t** failingAddress,
 			//Check
 			if (value != pattern) {
 				//Error! Set results
-				(*failingAddress) = &start[addr];
+				(*failingAddress) = (uint32_t**)&start[addr];
 				(*failingPattern) = pattern;
 				(*failingPatternOut) = value;
 				return -1;

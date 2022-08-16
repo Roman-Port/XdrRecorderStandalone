@@ -65,7 +65,7 @@ void recorder_class_init_iq(recorder_class_t* cls) {
 	cls->name = "Baseband";
 	cls->dma_handle_a = hsai_BlockA1.hdmarx;
 	cls->dma_handle_b = hsai_BlockB1.hdmarx;
-	cls->input_bytes_per_sample = sizeof(uint16_t);
+	cls->input_bytes_per_sample = sizeof(int16_t);
 	cls->input_requires_slave = 1;
 	cls->output_channels = 2;
 	cls->output_bits_per_sample = 16;

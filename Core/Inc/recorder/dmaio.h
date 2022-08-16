@@ -32,10 +32,10 @@ typedef struct {
 
 	// PRIVATE
 
-	uint8_t _current_dma_buffer;    // Buffer currently being written to via DMA
-	uint8_t _next_dma_buffer;       // Buffer that will be written to next
-	uint8_t _next_dma_buffer_ready; // Flag indicating if the next DMA buffer is ready or not
-	uint8_t _current_reading_buffer;// Buffer index that is next to be read with rec_dmaio_pop
+	uint8_t _current_dma_buffer;     // Buffer currently being written to via DMA
+	uint8_t _next_dma_buffer;        // Buffer that will be written to next
+	uint8_t _next_dma_buffer_flags;  // Status of the next DMA buffer
+	uint8_t _current_reading_buffer; // Buffer index that is next to be read with rec_dmaio_pop
 
 } rec_dmaio_t;
 

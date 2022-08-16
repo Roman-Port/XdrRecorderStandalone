@@ -99,17 +99,42 @@ int recorder_handler_begin(int index, FIL* output) {
 	if (f_open(output, "0:/test.wav", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 		return 0;
 
+	//Query
+	recorder_class_t info;
+	uint8_t state;
+	uint64_t receivedSamples;
+	uint64_t droppedBuffers;
+	recorder_query_instance_info(index, &info, &state, &receivedSamples, &droppedBuffers);
+
 	//Prepare WAV header
 	wav_file_header_t wav;
-	wav_init_header(&wav, 2, 16, 650026);
+	wav_init_header(&wav, info.output_channels, info.output_bits_per_sample, info.output_sample_rate);
 	UINT written;
 	f_write(output, &wav, sizeof(wav), &written);
 	return 1;
 }
 
-// USER IMPLIMENTED - Called when a recorder stops (either normally or with an error)
-void recorder_handler_stop(int index, int code) {
+// USER IMPLIMENTED - Called when a recorder stops (either normally or with an error). File should be closed by this function.
+void recorder_handler_stop(int index, FIL* output, int code) {
+	//Query
+	recorder_class_t info;
+	uint8_t state;
+	uint64_t receivedSamples;
+	uint64_t droppedBuffers;
+	recorder_query_instance_info(index, &info, &state, &receivedSamples, &droppedBuffers);
 
+	//Prepare WAV header
+	wav_file_header_t wav;
+	wav_init_header(&wav, info.output_channels, info.output_bits_per_sample, info.output_sample_rate);
+	wav_calculate_length(&wav, receivedSamples);
+
+	//Rewind to beginning and update WAV header
+	UINT written;
+	f_lseek(output, 0);
+	f_write(output, &wav, sizeof(wav), &written);
+
+	//Finally, close file
+	f_close(output);
 }
 
 /* USER CODE END 0 */
@@ -455,7 +480,7 @@ static void MX_I2S3_Init(void)
   hi2s3.Init.Standard = I2S_STANDARD_PHILIPS;
   hi2s3.Init.DataFormat = I2S_DATAFORMAT_16B;
   hi2s3.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
-  hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_8K;
+  hi2s3.Init.AudioFreq = I2S_AUDIOFREQ_44K;
   hi2s3.Init.CPOL = I2S_CPOL_LOW;
   hi2s3.Init.ClockSource = I2S_CLOCK_PLL;
   hi2s3.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
@@ -492,10 +517,10 @@ static void MX_SAI1_Init(void)
   hsai_BlockA1.Init.ClockStrobing = SAI_CLOCKSTROBING_RISINGEDGE;
   hsai_BlockA1.Init.Synchro = SAI_ASYNCHRONOUS;
   hsai_BlockA1.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
-  hsai_BlockA1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+  hsai_BlockA1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_FULL;
   hsai_BlockA1.FrameInit.FrameLength = 32;
   hsai_BlockA1.FrameInit.ActiveFrameLength = 1;
-  hsai_BlockA1.FrameInit.FSDefinition = SAI_FS_CHANNEL_IDENTIFICATION;
+  hsai_BlockA1.FrameInit.FSDefinition = SAI_FS_STARTFRAME;
   hsai_BlockA1.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
   hsai_BlockA1.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
   hsai_BlockA1.SlotInit.FirstBitOffset = 0;
@@ -514,10 +539,10 @@ static void MX_SAI1_Init(void)
   hsai_BlockB1.Init.ClockStrobing = SAI_CLOCKSTROBING_RISINGEDGE;
   hsai_BlockB1.Init.Synchro = SAI_SYNCHRONOUS;
   hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
-  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_FULL;
   hsai_BlockB1.FrameInit.FrameLength = 32;
   hsai_BlockB1.FrameInit.ActiveFrameLength = 1;
-  hsai_BlockB1.FrameInit.FSDefinition = SAI_FS_CHANNEL_IDENTIFICATION;
+  hsai_BlockB1.FrameInit.FSDefinition = SAI_FS_STARTFRAME;
   hsai_BlockB1.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
   hsai_BlockB1.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
   hsai_BlockB1.SlotInit.FirstBitOffset = 0;

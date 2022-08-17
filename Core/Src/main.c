@@ -243,10 +243,17 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 200;
+  RCC_OscInitStruct.PLL.PLLN = 180;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
   RCC_OscInitStruct.PLL.PLLQ = 10;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Activate the Over-Drive mode
+  */
+  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
   {
     Error_Handler();
   }
@@ -257,10 +264,10 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -309,7 +316,7 @@ static void MX_ADC1_Init(void)
   /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
@@ -511,7 +518,7 @@ static void MX_SAI1_Init(void)
   hsai_BlockA1.Instance = SAI1_Block_A;
   hsai_BlockA1.Init.Protocol = SAI_FREE_PROTOCOL;
   hsai_BlockA1.Init.AudioMode = SAI_MODESLAVE_RX;
-  hsai_BlockA1.Init.DataSize = SAI_DATASIZE_16;
+  hsai_BlockA1.Init.DataSize = SAI_DATASIZE_32;
   hsai_BlockA1.Init.FirstBit = SAI_FIRSTBIT_MSB;
   hsai_BlockA1.Init.ClockStrobing = SAI_CLOCKSTROBING_RISINGEDGE;
   hsai_BlockA1.Init.Synchro = SAI_ASYNCHRONOUS;
@@ -523,8 +530,8 @@ static void MX_SAI1_Init(void)
   hsai_BlockA1.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
   hsai_BlockA1.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
   hsai_BlockA1.SlotInit.FirstBitOffset = 0;
-  hsai_BlockA1.SlotInit.SlotSize = SAI_SLOTSIZE_16B;
-  hsai_BlockA1.SlotInit.SlotNumber = 2;
+  hsai_BlockA1.SlotInit.SlotSize = SAI_SLOTSIZE_32B;
+  hsai_BlockA1.SlotInit.SlotNumber = 1;
   hsai_BlockA1.SlotInit.SlotActive = 0x0000FFFF;
   if (HAL_SAI_Init(&hsai_BlockA1) != HAL_OK)
   {
@@ -533,7 +540,7 @@ static void MX_SAI1_Init(void)
   hsai_BlockB1.Instance = SAI1_Block_B;
   hsai_BlockB1.Init.Protocol = SAI_FREE_PROTOCOL;
   hsai_BlockB1.Init.AudioMode = SAI_MODESLAVE_RX;
-  hsai_BlockB1.Init.DataSize = SAI_DATASIZE_16;
+  hsai_BlockB1.Init.DataSize = SAI_DATASIZE_32;
   hsai_BlockB1.Init.FirstBit = SAI_FIRSTBIT_MSB;
   hsai_BlockB1.Init.ClockStrobing = SAI_CLOCKSTROBING_RISINGEDGE;
   hsai_BlockB1.Init.Synchro = SAI_SYNCHRONOUS;
@@ -545,8 +552,8 @@ static void MX_SAI1_Init(void)
   hsai_BlockB1.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
   hsai_BlockB1.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
   hsai_BlockB1.SlotInit.FirstBitOffset = 0;
-  hsai_BlockB1.SlotInit.SlotSize = SAI_SLOTSIZE_16B;
-  hsai_BlockB1.SlotInit.SlotNumber = 2;
+  hsai_BlockB1.SlotInit.SlotSize = SAI_SLOTSIZE_32B;
+  hsai_BlockB1.SlotInit.SlotNumber = 1;
   hsai_BlockB1.SlotInit.SlotActive = 0x0000FFFF;
   if (HAL_SAI_Init(&hsai_BlockB1) != HAL_OK)
   {

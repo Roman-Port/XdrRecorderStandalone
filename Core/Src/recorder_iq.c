@@ -14,8 +14,8 @@ static inline void begin_dma_transfer() {
 	int16_t* addr = (int16_t*)iq_setup->buffers[transfer_buffer_index].buffer;
 
 	//Begin DMAs transfer to new buffer
-	HAL_DMA_Start_IT(hsai_BlockA1.hdmarx, (uint32_t)&hsai_BlockA1.Instance->DR, (uint32_t)addr, RECORDER_BUFFER_SIZE);
-	HAL_DMA_Start_IT(hsai_BlockB1.hdmarx, (uint32_t)&hsai_BlockB1.Instance->DR, (uint32_t)&addr[RECORDER_BUFFER_SIZE], RECORDER_BUFFER_SIZE);
+	HAL_DMA_Start_IT(hsai_BlockA1.hdmarx, (uint32_t)&hsai_BlockA1.Instance->DR, (uint32_t)addr, RECORDER_BUFFER_SIZE/2);
+	HAL_DMA_Start_IT(hsai_BlockB1.hdmarx, (uint32_t)&hsai_BlockB1.Instance->DR, (uint32_t)&addr[RECORDER_BUFFER_SIZE], RECORDER_BUFFER_SIZE/2);
 }
 
 static inline void dma_transfer_completed(int flagsMask) {

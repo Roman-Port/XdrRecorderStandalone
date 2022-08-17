@@ -6,7 +6,7 @@
 #include "recorder/wav.h"
 
 #define RECORDER_MAX_BUFFERS 512
-#define RECORDER_BUFFER_SIZE 65536 // in samples (per channel)
+#define RECORDER_BUFFER_SIZE 32768 // in samples (per channel)
 #define RECORDER_INSTANCES_COUNT 1
 
 #define RECORDER_STATE_IDLE 0

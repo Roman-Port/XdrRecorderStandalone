@@ -50,6 +50,7 @@ static void setup_recorder_buffers() {
 		//Setup each buffer
 		for (int b = 0; b < bufferCount; b++) {
 			//Configure
+			recorders[i].setup.buffers[b].state = 0;
 			recorders[i].setup.buffers[b].buffer = addr;
 
 			//Zero it out. This helps with debugging and also serves as a simple check to make sure the RAM is even accessible
@@ -147,7 +148,7 @@ void recorder_tick() {
 				recorders[i].received_samples += RECORDER_BUFFER_SIZE;
 
 				//Mark as free and advance cursor
-				recorders[i].setup.buffers[i].state = 0;
+				recorders[i].setup.buffers[recorders[i].output_buffer_index].state = 0;
 				recorders[i].output_buffer_index = (recorders[i].output_buffer_index + 1) % recorders[i].setup.buffer_count;
 			}
 
@@ -156,7 +157,7 @@ void recorder_tick() {
 				recorder_stop(i, code);
 
 			//TEST
-			if (recorders[i].received_samples >= 650026 * 60 * 1) {
+			if (recorders[i].received_samples >= 650026 * 60 * 10) {
 				recorder_stop(i, 2);
 			}
 		}

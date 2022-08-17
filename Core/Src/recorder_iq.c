@@ -1,86 +1,75 @@
 #include "recorder.h"
-
-#define TRANSFERS_PER_BLOCK 4
-#define SAMPLES_PER_BLOCK 8 /* Depends on FIFO transfer percentage */
-
-typedef struct {
-
-	int16_t* output;
-	int remaining_blocks;      //-1 has a special meaning. It indicates that we've advanced to the next buffer but we're waiting for it to become free
-	int current_buffer_index;
-
-} transfer_block_t;
+#include "assert.h"
 
 static recorder_setup_t* iq_setup = NULL;
 
-static transfer_block_t block_data_a;
-static transfer_block_t block_data_b;
+static int transfer_buffer_index = 0;
+static int transfer_buffer_flags = 0;
 
-static inline void transfer_block(SAI_HandleTypeDef* hsai, transfer_block_t* block, uint8_t bufferMask, int bufferIndexOffset) {
-	//Check if we've finished this buffer
-	if (block->remaining_blocks == 0) {
+static inline void begin_dma_transfer() {
+	//Clear flags
+	transfer_buffer_flags = 0;
+
+	//Determine next buffer address
+	int16_t* addr = (int16_t*)iq_setup->buffers[transfer_buffer_index].buffer;
+
+	//Begin DMAs transfer to new buffer
+	HAL_DMA_Start_IT(hsai_BlockA1.hdmarx, (uint32_t)&hsai_BlockA1.Instance->DR, (uint32_t)addr, RECORDER_BUFFER_SIZE);
+	HAL_DMA_Start_IT(hsai_BlockB1.hdmarx, (uint32_t)&hsai_BlockB1.Instance->DR, (uint32_t)&addr[RECORDER_BUFFER_SIZE], RECORDER_BUFFER_SIZE);
+}
+
+static inline void dma_transfer_completed(int flagsMask) {
+	//Mark in flags
+	transfer_buffer_flags |= flagsMask;
+
+	//Check if both are done
+	if ((transfer_buffer_flags & 0b11) == 0b11) {
 		//Mark this buffer as complete
-		iq_setup->buffers[block->current_buffer_index].state |= bufferMask;
+		iq_setup->buffers[transfer_buffer_index].state = 0xFF;
 
-		//Step forward to next buffer
-		block->current_buffer_index = (block->current_buffer_index + 1) % iq_setup->buffer_count;
+		//Step cursor forward to next buffer
+		transfer_buffer_index = (transfer_buffer_index + 1) % iq_setup->buffer_count;
 
-		//Set state
-		block->remaining_blocks = -1;
-	}
-
-	//Check if we're waiting for the next buffer to become free and it has
-	if (block->remaining_blocks == -1 && iq_setup->buffers[block->current_buffer_index].state == 0) {
-		block->output = ((int16_t*)iq_setup->buffers[block->current_buffer_index].buffer) + bufferIndexOffset;
-		block->remaining_blocks = RECORDER_BUFFER_SIZE / 2 / SAMPLES_PER_BLOCK; //verify
-	}
-
-	//Write samples
-	if (block->remaining_blocks > 0) {
-		//Transfer to the output
-		int16_t temp[2];
-		for (int i = 0; i < TRANSFERS_PER_BLOCK; i++) {
-			*((int32_t*)temp) = hsai->Instance->DR;
-			block->output[0] = temp[1];
-			block->output[2] = temp[0];
-			block->output += 4;
-		}
-		block->remaining_blocks--;
-	} else {
-		//Read from the data register to advance the FIFO, but just discard the result and count it towards dropped samples
-		uint32_t nothingnessOfSpace;
-		for (int i = 0; i < TRANSFERS_PER_BLOCK; i++) {
-			nothingnessOfSpace = hsai->Instance->DR;
-			iq_setup->dropped_samples++; // BUG: This'll advance twice as fast as it should
+		//Make sure it is available
+		if (iq_setup->buffers[transfer_buffer_index].state == 0) {
+			//Start new DMA transfer
+			begin_dma_transfer();
+		} else {
+			//TODO
+			abort();
 		}
 	}
 }
 
-static void transfer_block_a(SAI_HandleTypeDef* hsai) {
-	transfer_block(hsai, &block_data_a, 0x0F, 0);
+static void transfer_block_a(DMA_HandleTypeDef* dma) {
+	dma_transfer_completed(0b01);
 }
 
-static void transfer_block_b(SAI_HandleTypeDef* hsai) {
-	transfer_block(hsai, &block_data_b, 0xF0, 1);
+static void transfer_block_b(DMA_HandleTypeDef* dma) {
+	dma_transfer_completed(0b10);
 }
 
-typedef void (*block_transfer_cb)(SAI_HandleTypeDef* hsai);
-static void prepare_transfer_block(SAI_HandleTypeDef* hsai, transfer_block_t* block, block_transfer_cb transferCb) {
-	//Reset the block data
-	block->current_buffer_index = 0;
-	block->output = 0;
-	block->remaining_blocks = -1;
-
+typedef void (*block_transfer_cb)(DMA_HandleTypeDef* hsai);
+static void prepare_transfer_block(SAI_HandleTypeDef* hsai, block_transfer_cb transferCb) {
 	//Configure the SAI
-	__HAL_SAI_ENABLE_IT(hsai, SAI_IT_OVRUDR | SAI_IT_AFSDET | SAI_IT_LFSDET | SAI_IT_FREQ);
-	hsai->InterruptServiceRoutine = transferCb;
+	__HAL_SAI_ENABLE_IT(hsai, SAI_IT_OVRUDR | SAI_IT_AFSDET | SAI_IT_LFSDET);
+	hsai->Instance->CR1 |= SAI_xCR1_DMAEN;
 	hsai->Instance->CR2 |= SAI_xCR2_FFLUSH;
+
+	//Configure DMA
+	hsai->hdmarx->XferCpltCallback = transferCb;
 }
 
 static void prepare_transfers(recorder_setup_t* setup) {
+	//Set
 	iq_setup = setup;
-	prepare_transfer_block(&hsai_BlockA1, &block_data_a, transfer_block_a);
-	prepare_transfer_block(&hsai_BlockB1, &block_data_b, transfer_block_b);
+
+	//Configure
+	prepare_transfer_block(&hsai_BlockA1, transfer_block_a);
+	prepare_transfer_block(&hsai_BlockB1, transfer_block_b);
+
+	//Begin DMA transfers
+	begin_dma_transfer();
 }
 
 static void begin_transfers() {
@@ -110,7 +99,7 @@ void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai) {
 const recorder_class_t recorder_class_iq = {
 		.name = "Baseband",
 		.input_bytes_per_sample = 4,
-		.output_channels = 2,
+		.output_channels = 3, //test
 		.output_bits_per_sample = 16,
 		.output_sample_rate = 650026,
 		.init_cb = prepare_transfers,

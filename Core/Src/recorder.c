@@ -157,7 +157,7 @@ void recorder_tick() {
 				recorder_stop(i, code);
 
 			//TEST
-			if (recorders[i].received_samples >= 650026 * 30) {
+			if (recorders[i].received_samples >= 650026 * 60 * 3) {
 				recorder_stop(i, 2);
 			}
 		}

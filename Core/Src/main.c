@@ -25,6 +25,11 @@
 #include "sdram.h"
 #include "recorder.h"
 #include "recorder/wav.h"
+#include "sdman.h"
+#include "gui/display.h"
+#include "gui/viewman.h"
+#include "gui/views/splash.h"
+#include "gui/views/home.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,8 +95,6 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-FATFS card;
 
 // USER IMPLIMENTED - Called when a recorder starts. Output should be opened. Returns 1 on success, otherwise 0
 int recorder_handler_begin(int index, FIL* output) {
@@ -178,9 +181,9 @@ int main(void)
   MX_SAI1_Init();
   MX_SDIO_SD_Init();
   MX_SPI6_Init();
-  MX_FATFS_Init();
   MX_I2C2_Init();
   MX_ADC1_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
   /*uint32_t test[64];
@@ -191,20 +194,40 @@ int main(void)
 	  count++;
   } while (result == HAL_OK);*/
 
-  //Mount the filesystem
-  if (f_mount(&card, SDPath, 1) != FR_OK)
-    abort();
+  //int code = f_mount(&sdman_fs, SDPath, 1);
+
+  //Start the display
+  HAL_Delay(250);
+  display_fb_clear();
+  display_init();
+  create_view_splash();
+  viewman_process_frame();
 
   //Initialize recorders
-  recorder_init();
-  recorder_request_start(0); //test
+  //recorder_init();
+  //recorder_request_start(0); //test
+
+  //Show home view
+  create_view_home();
+  uint32_t nextFrame = 0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	recorder_tick();
+	  //Tick SD card manager
+	  sdman_tick();
+
+	  //Tick recorders
+	  //recorder_tick();
+
+	  //Check if we need to refresh the display
+	  if (HAL_GetTick() > nextFrame) {
+		  viewman_process_frame();
+		  nextFrame = HAL_GetTick() + (1000 / 15);
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -400,7 +423,7 @@ static void MX_I2C2_Init(void)
 
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
-  hi2c2.Init.ClockSpeed = 100000;
+  hi2c2.Init.ClockSpeed = 400000;
   hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
@@ -646,13 +669,13 @@ static void MX_DMA_Init(void)
   HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
   /* DMA2_Stream1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 15, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 14, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
   /* DMA2_Stream3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
   /* DMA2_Stream4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream4_IRQn, 15, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream4_IRQn, 14, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream4_IRQn);
   /* DMA2_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 0, 0);

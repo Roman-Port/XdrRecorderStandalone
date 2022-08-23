@@ -40,11 +40,15 @@ extern "C" {
 extern DMA2D_HandleTypeDef hdma2d;
 extern SAI_HandleTypeDef hsai_BlockA1;
 extern SAI_HandleTypeDef hsai_BlockB1;
+extern I2C_HandleTypeDef hi2c2;
+extern SD_HandleTypeDef hsd;
 
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+
+#define RECORDER_FW_VER "0.1-dev"
 
 /* USER CODE END EC */
 

@@ -24,7 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "sdram.h"
-#include "recorder.h"
+#include "recorder/recorder.h"
 #include "recorder/wav.h"
 #include "sdman.h"
 #include "gui/assets.h"

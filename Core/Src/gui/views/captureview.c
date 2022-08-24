@@ -1,8 +1,8 @@
-#include <gui/views/captureview.h>
+#include "gui/views/captureview.h"
 #include "gui/viewman.h"
 #include "gui/display.h"
 #include "gui/assets.h"
-#include "recorder.h"
+#include "recorder/recorder.h"
 #include "sdman.h"
 #include <stdio.h>
 

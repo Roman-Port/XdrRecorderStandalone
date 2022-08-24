@@ -3,14 +3,14 @@
 
 #include <stdint.h>
 
-typedef __attribute__((__packed__)) struct {
-	uint8_t marker[4];
+typedef struct {
+	char marker[4];
 	int32_t len;
 } wav_file_segment_t;
 
-typedef __attribute__((__packed__)) struct {
+typedef struct {
 	wav_file_segment_t riff;
-	uint8_t file_type[4];
+	char file_type[4];
 	wav_file_segment_t fmt;
 	uint16_t format;
 	uint16_t channels;

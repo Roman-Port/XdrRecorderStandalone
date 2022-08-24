@@ -76,10 +76,6 @@ typedef struct {
 
 extern recorder_instance_t recorders[RECORDER_INSTANCES_COUNT];
 
-/* CLASSES */
-
-extern const recorder_class_t recorder_class_iq;
-
 /* MAIN */
 
 // Initializes the recorder.

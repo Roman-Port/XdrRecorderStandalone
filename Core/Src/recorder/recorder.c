@@ -1,5 +1,6 @@
-#include "recorder.h"
+#include "recorder/recorder.h"
 #include "sdram.h"
+#include "recorder_classes.h"
 #include <string.h>
 
 recorder_instance_t recorders[RECORDER_INSTANCES_COUNT];

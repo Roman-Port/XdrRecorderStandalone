@@ -1,7 +1,7 @@
-#include "recorder.h"
+#include "recorder/recorder.h"
 #include "assert.h"
-#include "recorder/dma2d_pipeline.h"
 #include "gui/assets.h"
+#include "recorder_classes.h"
 
 typedef struct {
 
@@ -126,7 +126,6 @@ static void recorder_dma_half_completed_b1(DMA_HandleTypeDef *hdma) {
 
 // Error in DMA
 static void recorder_dma_error(DMA_HandleTypeDef *hdma) {
-	int err = hdma->ErrorCode;
 	abort();
 }
 

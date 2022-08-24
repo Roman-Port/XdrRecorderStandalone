@@ -2,19 +2,7 @@
 #include "sdram.h"
 #include <string.h>
 
-typedef struct {
-
-	const recorder_class_t* info;
-	recorder_setup_t setup;
-	FIL file;
-
-	uint8_t state;
-	uint32_t output_buffer_index; // Current buffer we want to write to disk
-	uint64_t received_samples;
-
-} recorder_instance_t;
-
-static recorder_instance_t recorders[RECORDER_INSTANCES_COUNT];
+recorder_instance_t recorders[RECORDER_INSTANCES_COUNT];
 static uint16_t recorder_start_flags = 0; // Each bit represents an index that we want to start capture from
 
 static void setup_recorder_buffers() {

@@ -39,6 +39,9 @@ void display_fb_draw_image(int xOffset, int yOffset, const gfx_img_t* img);
 // Draws a simple line horizontally
 void display_fb_draw_line_h(int y, int x1, int x2, int color);
 
+// Draws a simple line vertically
+void display_fb_draw_line_v(int x, int y1, int y2, int color);
+
 // Draws text to the frame buffer
 void display_fb_draw_text(const gfx_font_t* font, int x, int y, const char* text);
 void display_fb_draw_textbox(const gfx_font_t* font, int x, int y, int width, int height, int flags, const char* text);

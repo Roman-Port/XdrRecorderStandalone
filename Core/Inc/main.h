@@ -54,7 +54,8 @@ extern SD_HandleTypeDef hsd;
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

@@ -1,8 +1,6 @@
 #include "gui/display.h"
+#include "main.h"
 #include <string.h>
-
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 uint64_t display_framebuffer[DISPLAY_WIDTH];
 
@@ -14,16 +12,16 @@ void display_fb_clear() {
 void display_fb_set_pixel(int x, int y, int color) {
 	if (x >= 0 && x < DISPLAY_WIDTH) {
 		if (color)
-			display_framebuffer[x] |= 1UL << y;
+			display_framebuffer[x] |= 1ULL << y;
 		else
-			display_framebuffer[x] &= ~(1UL << y);
+			display_framebuffer[x] &= ~(1ULL << y);
 	}
 }
 
 void display_fb_invert_region(int xOffset, int yOffset, int width, int height) {
 	if (xOffset < 0)
 		return;
-	uint64_t mask = ((1UL << height) - 1) << yOffset;
+	uint64_t mask = ((1ULL << (uint64_t)height) - 1ULL) << (uint64_t)yOffset;
 	for (int x = 0; x < width && x + xOffset < DISPLAY_WIDTH; x++) {
 		display_framebuffer[x + xOffset] =
 				(display_framebuffer[x + xOffset] & (~mask)) | /* keep other unaffected bits */
@@ -37,7 +35,7 @@ void display_fb_draw_line_h(int y, int x1, int x2, int color) {
 	uint64_t mask = 1;
 	mask <<= y;
 	for (int i = start; i < end; i++) {
-		if (i > 0 && i < DISPLAY_WIDTH) {
+		if (i >= 0 && i < DISPLAY_WIDTH) {
 			if (color) {
 				display_framebuffer[i] |= mask;
 			} else {
@@ -47,10 +45,24 @@ void display_fb_draw_line_h(int y, int x1, int x2, int color) {
 	}
 }
 
+void display_fb_draw_line_v(int x, int y1, int y2, int color) {
+	int start = MIN(y1, y2);
+	int end = MAX(y1, y2);
+	uint64_t mask = (1ULL << (end - start + 1)) - 1;
+	mask <<= start;
+	if (x >= 0 && x < DISPLAY_WIDTH) {
+		if (color) {
+			display_framebuffer[x] |= mask;
+		} else {
+			display_framebuffer[x] &= ~mask;
+		}
+	}
+}
+
 void display_fb_draw(int xOffset, int yOffset, int width, int height, const uint64_t* data) {
 	if (xOffset < 0)
 		return;
-	uint64_t mask = (1UL << height) - 1;
+	uint64_t mask = (1ULL << height) - 1;
 	mask <<= yOffset;
 	mask = ~mask;
 	for (int x = 0; x < width && x + xOffset < DISPLAY_WIDTH; x++) {

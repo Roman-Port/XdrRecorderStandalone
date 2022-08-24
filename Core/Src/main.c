@@ -17,6 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <gui/views/captureview.h>
 #include "main.h"
 #include "fatfs.h"
 
@@ -26,10 +27,10 @@
 #include "recorder.h"
 #include "recorder/wav.h"
 #include "sdman.h"
+#include "gui/assets.h"
 #include "gui/display.h"
 #include "gui/viewman.h"
 #include "gui/views/splash.h"
-#include "gui/views/home.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -201,15 +202,12 @@ int main(void)
   display_fb_clear();
   display_init();
   create_view_splash();
-  viewman_process_frame();
+  viewman_tick();
 
-  //Initialize recorders
-  //recorder_init();
-  //recorder_request_start(0); //test
-
-  //Show home view
-  create_view_home();
-  uint32_t nextFrame = 0;
+  //Show capture view
+  create_view_capture();
+  viewman_push_alert(&icon_alert_warn, "SD IO Err!");
+  int test = 0;
 
   /* USER CODE END 2 */
 
@@ -220,14 +218,14 @@ int main(void)
 	  //Tick SD card manager
 	  sdman_tick();
 
-	  //Tick recorders
-	  //recorder_tick();
-
-	  //Check if we need to refresh the display
-	  if (HAL_GetTick() > nextFrame) {
-		  viewman_process_frame();
-		  nextFrame = HAL_GetTick() + (1000 / 15);
+	  //TEST
+	  if (!test && sdman_state == SDMAN_STATE_READY) {
+		  recorder_request_start(0);
+		  test = 1;
 	  }
+
+	  //Tick view
+	  viewman_tick();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

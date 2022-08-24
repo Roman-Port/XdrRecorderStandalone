@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "fatfs.h"
 #include "recorder/wav.h"
+#include "gui/defines.h"
 
 #define RECORDER_MAX_BUFFERS 512
 #define RECORDER_BUFFER_SIZE 32768 // in samples (per channel)
@@ -45,6 +46,9 @@ typedef void (*recorder_class_stop_cb)();
 typedef struct {
 
 	const char* name;
+	const gfx_img_t* icon;
+
+	int* current_capturing_buffer;
 
 	uint32_t input_bytes_per_sample; //across all channels
 
@@ -57,6 +61,20 @@ typedef struct {
 	recorder_class_stop_cb stop_cb;
 
 } recorder_class_t;
+
+typedef struct {
+
+	const recorder_class_t* info;
+	recorder_setup_t setup;
+	FIL file;
+
+	uint8_t state;
+	uint32_t output_buffer_index; // Current buffer we want to write to disk
+	uint64_t received_samples;
+
+} recorder_instance_t;
+
+extern recorder_instance_t recorders[RECORDER_INSTANCES_COUNT];
 
 /* CLASSES */
 

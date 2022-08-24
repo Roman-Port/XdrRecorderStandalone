@@ -1,6 +1,7 @@
 #include "recorder.h"
 #include "assert.h"
 #include "recorder/dma2d_pipeline.h"
+#include "gui/assets.h"
 
 typedef struct {
 
@@ -214,6 +215,8 @@ void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai) {
 
 const recorder_class_t recorder_class_iq = {
 		.name = "Baseband",
+		.icon = &icon_recorder_iq,
+		.current_capturing_buffer = &next_dma_buffer,
 		.input_bytes_per_sample = 4,
 		.output_channels = 2,
 		.output_bits_per_sample = 16,
